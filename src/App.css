@@ -294,6 +294,7 @@ input[type="text"] {
 }
 input[type="text"]::placeholder { color: var(--color-text-disabled); }
 input[type="text"]:hover { border-color: var(--color-border-strong); }
+input[type="text"]:disabled { opacity: 0.5; cursor: not-allowed; }
 input[type="text"]:focus-visible {
   border-color: var(--color-border-focus);
   box-shadow: var(--focus-ring);

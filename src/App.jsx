@@ -298,11 +298,12 @@ export default function App() {
               value={inputVal}
               onChange={e => setInputVal(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addRestaurant()}
+              disabled={spinning}
             />
             <button
               className="btn-add"
               onClick={() => addRestaurant()}
-              disabled={!inputVal.trim()}
+              disabled={!inputVal.trim() || spinning}
             >
               Add
             </button>
