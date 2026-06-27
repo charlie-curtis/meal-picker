@@ -1,10 +1,10 @@
-# Pick For Us
+# Just Pick Food
 
 A real-time collaborative food picker. Add places together, share one live room, and let the app choose where to eat.
 
 **Live:** [justpickfood.com](https://justpickfood.com)
 
-![Pick For Us app screenshot](docs/assets/pick-for-us-screenshot.png)
+![Just Pick Food app screenshot](docs/assets/pick-for-us-screenshot.png)
 
 ---
 
