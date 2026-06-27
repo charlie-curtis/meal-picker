@@ -53,6 +53,12 @@ export default function App() {
   const [helpOpen, setHelpOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [copyLabel, setCopyLabel] = useState('Copy link')
+  const [nearbyOpen, setNearbyOpen] = useState(false)
+  const [locationInput, setLocationInput] = useState('')
+  const [radius, setRadius] = useState(5)
+  const [nearbyResults, setNearbyResults] = useState([])
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [locationError, setLocationError] = useState('')
   const inputRef = useRef(null)
   const spinTimer = useRef(null)
 
@@ -149,6 +155,89 @@ export default function App() {
     setTimeout(() => setCopyLabel('Copy link'), 2000)
   }
 
+  function getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation not supported by your browser'))
+        return
+      }
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => reject(new Error('Location access denied — try entering an address instead'))
+      )
+    })
+  }
+
+  async function searchNearbyPlaces(lat, lng) {
+    const workerUrl = import.meta.env.VITE_WORKER_URL
+    if (!workerUrl) throw new Error('Add VITE_WORKER_URL to .env.local')
+    const radiusMeters = radius * 1609.34
+    const res = await fetch(`${workerUrl}/nearby`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        includedTypes: ['restaurant'],
+        maxResultCount: 20,
+        locationRestriction: {
+          circle: {
+            center: { latitude: lat, longitude: lng },
+            radius: radiusMeters,
+          }
+        }
+      })
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error?.message ?? 'Nearby search failed')
+    const names = (data.places ?? [])
+      .filter(p => p.displayName?.text)
+      .map(p => p.displayName.text)
+    return [...new Set(names)]
+  }
+
+  async function geocodeAddress(address) {
+    const workerUrl = import.meta.env.VITE_WORKER_URL
+    if (!workerUrl) throw new Error('Add VITE_WORKER_URL to .env.local')
+    const res = await fetch(`${workerUrl}/geocode?address=${encodeURIComponent(address)}`)
+    const data = await res.json()
+    if (data.status !== 'OK') throw new Error('Address not found — try a more specific address or zip code')
+    const { lat, lng } = data.results[0].geometry.location
+    return { lat, lng }
+  }
+
+  async function findNearby() {
+    if (!locationInput.trim()) return
+    setLocationLoading(true)
+    setLocationError('')
+    setNearbyResults([])
+    try {
+      const { lat, lng } = await geocodeAddress(locationInput.trim())
+      const names = await searchNearbyPlaces(lat, lng)
+      if (names.length === 0) setLocationError('No restaurants found — try a larger radius.')
+      else setNearbyResults(names)
+    } catch (e) {
+      setLocationError(e.message)
+    } finally {
+      setLocationLoading(false)
+    }
+  }
+
+  async function useMyLocation() {
+    setLocationLoading(true)
+    setLocationError('')
+    setNearbyResults([])
+    setLocationInput('')
+    try {
+      const { lat, lng } = await getCurrentPosition()
+      const names = await searchNearbyPlaces(lat, lng)
+      if (names.length === 0) setLocationError('No restaurants found — try a larger radius.')
+      else setNearbyResults(names)
+    } catch (e) {
+      setLocationError(e.message)
+    } finally {
+      setLocationLoading(false)
+    }
+  }
+
   return (
     <main className="page">
       <div className="card">
@@ -191,6 +280,87 @@ export default function App() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Nearby restaurants */}
+        <div className="nearby-section">
+          <button
+            className="disclosure-toggle"
+            aria-expanded={nearbyOpen}
+            aria-controls="nearby-panel"
+            onClick={() => setNearbyOpen(o => !o)}
+          >
+            <Chevron />
+            Find nearby restaurants
+          </button>
+          <div id="nearby-panel" className={`collapse ${nearbyOpen ? 'open' : ''}`}>
+            <div className="collapse-inner" {...(!nearbyOpen ? { inert: '' } : {})}>
+              <div className="nearby-tray">
+                <div className="nearby-controls">
+                  <input
+                    type="text"
+                    placeholder="Address or zip code…"
+                    value={locationInput}
+                    onChange={e => setLocationInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && findNearby()}
+                  />
+                  <button
+                    className="btn-locate"
+                    onClick={useMyLocation}
+                    aria-label="Use my current location"
+                    disabled={locationLoading}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8"/>
+                      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <div className="nearby-options-row">
+                  <label className="radius-label">
+                    Within
+                    <select value={radius} onChange={e => setRadius(Number(e.target.value))}>
+                      <option value={0.5}>0.5 mi</option>
+                      <option value={1}>1 mi</option>
+                      <option value={2}>2 mi</option>
+                      <option value={5}>5 mi</option>
+                      <option value={10}>10 mi</option>
+                    </select>
+                  </label>
+                  <button
+                    className="btn-search"
+                    onClick={findNearby}
+                    disabled={locationLoading || !locationInput.trim()}
+                  >
+                    {locationLoading ? 'Searching…' : 'Search'}
+                  </button>
+                </div>
+                {locationError && (
+                  <p className="nearby-error" role="alert">{locationError}</p>
+                )}
+                {nearbyResults.length > 0 && (
+                  <div className="nearby-results">
+                    <div className="help-category-label">{nearbyResults.length} nearby</div>
+                    <div className="help-chips">
+                      {nearbyResults.map(name => {
+                        const added = addedNames.has(name.toLowerCase())
+                        return (
+                          <button
+                            key={name}
+                            className={`help-chip${added ? ' added' : ''}`}
+                            onClick={() => addRestaurant(name)}
+                            disabled={added}
+                          >
+                            {name}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

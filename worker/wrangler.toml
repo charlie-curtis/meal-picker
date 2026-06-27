@@ -1,0 +1,8 @@
+name = "meal-picker-proxy"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "1f7ddc136ce74f2594f7548f6da24bd5"
+preview_id = "3209fa772541430991fbff10416a1873"
