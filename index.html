@@ -36,6 +36,36 @@
       margin-bottom: 28px;
     }
 
+    .share-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f5f0eb;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 24px;
+      font-size: 0.82rem;
+      color: #666;
+    }
+
+    .share-box span {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-copy {
+      background: none;
+      border: none;
+      color: #ff6b35;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+      white-space: nowrap;
+    }
+
     .input-row {
       display: flex;
       gap: 8px;
@@ -143,13 +173,17 @@
       text-align: center;
       padding: 8px 0;
     }
-
   </style>
 </head>
 <body>
   <div class="card">
     <h1>Meal Picker</h1>
     <p class="subtitle">Add your options and let fate decide.</p>
+
+    <div class="share-box">
+      <span id="shareUrl"></span>
+      <button class="btn-copy" onclick="copyLink()">Copy link</button>
+    </div>
 
     <div class="input-row">
       <input id="restaurantInput" type="text" placeholder="Restaurant name…" />
@@ -166,8 +200,34 @@
     </div>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script>
-    const restaurants = [];
+    const firebaseConfig = {
+      apiKey: "AIzaSyAf8FxYhAgYPB3H2mDvzZUpfSUMAEDI240",
+      authDomain: "meal-picker-a1961.firebaseapp.com",
+      databaseURL: "https://meal-picker-a1961-default-rtdb.firebaseio.com",
+      projectId: "meal-picker-a1961",
+      storageBucket: "meal-picker-a1961.firebasestorage.app",
+      messagingSenderId: "292156708829",
+      appId: "1:292156708829:web:ee3b9535fd0bcfb1d78834"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Get room ID from URL, or generate a new one
+    let roomId = new URLSearchParams(window.location.search).get('room');
+    if (!roomId) {
+      roomId = Math.random().toString(36).slice(2, 8);
+      window.history.replaceState({}, '', `?room=${roomId}`);
+    }
+
+    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}`;
+    document.getElementById('shareUrl').textContent = shareUrl;
+
+    const restaurantsRef = db.ref(`rooms/${roomId}/restaurants`);
+    const winnerRef = db.ref(`rooms/${roomId}/winner`);
 
     const input = document.getElementById('restaurantInput');
     const list = document.getElementById('restaurantList');
@@ -176,51 +236,74 @@
 
     input.addEventListener('keydown', e => { if (e.key === 'Enter') addRestaurant(); });
 
+    function copyLink() {
+      navigator.clipboard.writeText(shareUrl);
+    }
+
     function addRestaurant() {
       const name = input.value.trim();
       if (!name) return;
-      restaurants.push(name);
+      restaurantsRef.push(name);
       input.value = '';
-      render();
       input.focus();
     }
 
-    function removeRestaurant(i) {
-      restaurants.splice(i, 1);
-      result.textContent = '';
-      render();
+    function removeRestaurant(key) {
+      restaurantsRef.child(key).remove();
+      winnerRef.remove();
     }
 
-    function render() {
+    // Firebase pushes updates here whenever the list changes (for any user)
+    restaurantsRef.on('value', snapshot => {
+      const data = snapshot.val() || {};
+      const entries = Object.entries(data); // [["key", "name"], ...]
       list.innerHTML = '';
-      if (restaurants.length === 0) {
+      if (entries.length === 0) {
         list.appendChild(emptyHint);
         return;
       }
-      restaurants.forEach((name, i) => {
+      entries.forEach(([key, name]) => {
         const li = document.createElement('li');
+        li.dataset.key = key;
         li.textContent = name;
         const btn = document.createElement('button');
         btn.textContent = '×';
         btn.className = 'remove-btn';
-        btn.onclick = () => removeRestaurant(i);
+        btn.onclick = () => removeRestaurant(key);
         li.appendChild(btn);
         list.appendChild(li);
       });
-    }
+    });
+
+    // Firebase pushes updates here when winner is set (for any user)
+    winnerRef.on('value', snapshot => {
+      const winner = snapshot.val();
+      const items = list.querySelectorAll('li');
+      items.forEach(li => li.classList.remove('winner'));
+      if (winner) {
+        result.textContent = `Let's go to ${winner}!`;
+        items.forEach(li => {
+          if (li.textContent.replace('×', '').trim() === winner) {
+            li.classList.add('winner');
+          }
+        });
+      }
+    });
 
     function pickRandom() {
-      if (restaurants.length === 0) {
+      const items = list.querySelectorAll('li');
+      if (!items.length) {
         result.textContent = 'Add some restaurants first!';
         return;
       }
-      const items = list.querySelectorAll('li');
-      items.forEach(li => li.classList.remove('winner'));
-      result.textContent = '';
 
+      const names = Array.from(items).map(li => li.dataset.key
+        ? li.childNodes[0].textContent.trim()
+        : null).filter(Boolean);
+
+      result.textContent = '';
       let i = 0;
-      const total = restaurants.length;
-      const duration = 1200;
+      const total = items.length;
       const interval = setInterval(() => {
         items.forEach(li => li.classList.remove('winner'));
         items[i % total].classList.add('winner');
@@ -229,11 +312,10 @@
 
       setTimeout(() => {
         clearInterval(interval);
-        const winner = Math.floor(Math.random() * total);
-        items.forEach(li => li.classList.remove('winner'));
-        items[winner].classList.add('winner');
-        result.textContent = `Let's go to ${restaurants[winner]}!`;
-      }, duration);
+        const winnerIndex = Math.floor(Math.random() * total);
+        const winnerName = names[winnerIndex];
+        winnerRef.set(winnerName);
+      }, 1200);
     }
   </script>
 </body>
