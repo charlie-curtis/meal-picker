@@ -648,19 +648,6 @@ select:focus-visible {
   gap: var(--space-3);
 }
 
-.share-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.share-hint {
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-  white-space: nowrap;
-}
-
 .btn-share-icon {
   display: inline-flex;
   align-items: center;

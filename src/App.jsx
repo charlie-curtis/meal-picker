@@ -275,18 +275,15 @@ export default function App() {
                 {viewerCount}
               </span>
             )}
-            <div className="share-wrapper">
-              <button className="btn-share-icon" onClick={copyLink} aria-label="Copy room link">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
-                        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
-                        stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span className="share-label">{copyLabel}</span>
-              </button>
-              <span className="share-hint">Send this to your partner first</span>
-            </div>
+            <button className="btn-share-icon" onClick={copyLink} aria-label="Copy room link">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+                      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+                      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <span className="share-label">{copyLabel}</span>
+            </button>
           </div>
         </div>
 
@@ -322,12 +319,8 @@ export default function App() {
                         stroke="currentColor" strokeWidth="1.4"
                         strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <span className="empty-title">How it works</span>
-                <ol className="empty-steps">
-                  <li>Share this link with your partner</li>
-                  <li>You both add restaurants</li>
-                  <li>Tap Pick — fate decides</li>
-                </ol>
+                <span className="empty-title">No restaurants yet</span>
+                <span className="empty-hint">Add one above, or browse suggestions below.</span>
               </li>
             ) : (
               entries.map(([key, name], i) => {
