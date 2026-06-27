@@ -16,7 +16,7 @@ Browser A ──┐
 Browser C ──┘
 ```
 
-There is no backend server. The app is a static React frontend that reads and writes directly to Firebase Realtime Database. Firebase pushes changes to all connected clients over WebSockets — so when one user adds a restaurant, everyone in the same room sees it immediately.
+There is no app server for the shared-room workflow. The app is a static React frontend that reads and writes directly to Firebase Realtime Database. Firebase pushes changes to all connected clients over WebSockets — so when one user adds a restaurant, everyone in the same room sees it immediately.
 
 Each session gets a **room ID** generated on first load and stored in the URL (`?room=abc123`). Sharing that URL gives anyone access to the same room.
 
@@ -29,6 +29,9 @@ pick-for-us/
 ├── index.html          # Entry point — just a shell div that Vite populates
 ├── vite.config.js      # Tells Vite to use the React JSX compiler
 ├── package.json        # Dependencies: React, Firebase, Vite
+├── public/
+│   ├── og-image.png    # Social preview image for shared links
+│   └── og-image.svg    # Source SVG for the social preview image
 ├── src/
 │   ├── main.jsx        # Mounts the React app into index.html's #root div
 │   ├── App.jsx         # The entire application — all logic and UI
@@ -42,10 +45,10 @@ pick-for-us/
 ```
 
 ### `index.html`
-A near-empty HTML file — just a `<div id="root">` that React mounts into, plus a `<script>` tag pointing at `src/main.jsx`. Vite injects the compiled JS/CSS bundles here at build time.
+A near-empty HTML file — mostly the SEO/social meta tags, a `<div id="root">` that React mounts into, and a `<script>` tag pointing at `src/main.jsx`. Vite injects the compiled JS/CSS bundles here at build time.
 
 ### `vite.config.js`
-Two lines. Registers the `@vitejs/plugin-react` plugin, which tells Vite's compiler how to transform JSX syntax (the HTML-in-JS that React uses) into plain JavaScript the browser can run.
+Small Vite config that registers the `@vitejs/plugin-react` plugin, which tells Vite's compiler how to transform JSX syntax (the HTML-in-JS that React uses) into plain JavaScript the browser can run.
 
 ### `src/main.jsx`
 The bootstrap file. Calls `createRoot().render(<App />)` to hand control to React. You rarely need to touch this.
@@ -61,12 +64,14 @@ The entire application lives here. It has three responsibilities:
 
 **2. State + data (inside the `App` component)**
 - `useState` hooks hold local UI state: the restaurant list, the current winner, spin state, input value, and panel open/closed states
-- `useEffect` sets up two Firebase `onValue` listeners on mount — one for the restaurant list, one for the winner. These fire immediately with current data, then again whenever any client writes a change. They are cleaned up when the component unmounts.
+- `useEffect` sets up Firebase `onValue` listeners on mount — one for the restaurant list, one for the winner, one for connection state, and one for room presence. These fire immediately with current data, then again whenever any client writes a change. They are cleaned up when the component unmounts.
+- Presence is tracked with Firebase `onDisconnect`, which lets the UI show when multiple people are in the room.
 - `addRestaurant`, `removeRestaurant`, `pickRandom` — the three mutations. Each writes to Firebase, which propagates to all connected clients via the listeners.
 - The winner is **chosen instantly** when `pickRandom` is called; the spin animation is purely visual. The winning restaurant is also written directly to local state (not just Firebase) to handle the case where the same winner is picked twice in a row — Firebase won't emit an `onValue` event if the value didn't change.
+- Nearby search uses the Cloudflare Worker URL from `VITE_WORKER_URL` to geocode an address or search around the user's current location.
 
 **3. JSX (the return block)**
-Renders the UI: title, collapsible suggestions panel, input row, restaurant list, pick button + result, and collapsible share section. No sub-components — everything is in one function for simplicity.
+Renders the UI: title, presence count, invite button, input row, restaurant list, pick button + result, collapsible suggestions, and collapsible nearby search. `Chevron` is the only small helper component; the rest stays in the main `App` function for simplicity.
 
 ### `src/App.css`
 Styles built on a **CSS custom property (token) system** defined in `:root`:
@@ -76,7 +81,7 @@ Styles built on a **CSS custom property (token) system** defined in `:root`:
 | `--space-*` | 4/8px spacing scale applied everywhere |
 | `--neutral-*` | 11-step warm gray ramp |
 | `--color-*` | Semantic tokens (text, surface, border, primary, danger, winner) mapped from the ramp |
-| `--text-*` | Type scale (display → label) on an Inter/system font stack |
+| `--text-*` | Type scale (display → label) on an Inter-first system fallback stack |
 | `--weight-*` | Font weights (regular/medium/semibold) |
 | `--radius-*` | Border radius scale (sm/md/lg/pill) |
 | `--elev-*` | Two-layer box shadows for elevation |
@@ -140,19 +145,22 @@ Firebase stores rooms as a JSON tree:
         "-NxKj2...": "Chipotle",
         "-NxKj3...": "Shake Shack"
       },
-      "winner": "Chipotle"
+      "winner": "Chipotle",
+      "presence": {
+        "-NxPresence...": true
+      }
     }
   }
 }
 ```
 
-Restaurant keys are Firebase push IDs (random, collision-safe, time-ordered). The winner is a plain string — the restaurant name.
+Restaurant and presence keys are Firebase push IDs (random, collision-safe, time-ordered). The winner is a plain string — the restaurant name. Presence entries are created per connected browser and removed automatically with Firebase `onDisconnect`.
 
 ---
 
 ## Getting started
 
-**Prerequisites:** Node.js 18+
+**Prerequisites:** Node.js 20.19+ or 22.12+ (required by the current Vite version)
 
 ```bash
 git clone https://github.com/charlie-curtis/pick-for-us.git
