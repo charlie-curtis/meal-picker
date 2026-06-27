@@ -1,8 +1,10 @@
 # Pick For Us
 
-A real-time collaborative food picker for two. Add restaurants to a shared list, spin to pick one at random, and see the result instantly across all connected users.
+A real-time collaborative food picker. Add places together, share one live room, and let the app choose where to eat.
 
-**Live:** run locally with `npm run dev` — see [Getting Started](#getting-started).
+**Live:** [justpickfood.com](https://justpickfood.com)
+
+![Pick For Us app screenshot](docs/assets/pick-for-us-screenshot.png)
 
 ---
 
@@ -23,7 +25,7 @@ Each session gets a **room ID** generated on first load and stored in the URL (`
 ## File structure
 
 ```
-meal-picker/
+pick-for-us/
 ├── index.html          # Entry point — just a shell div that Vite populates
 ├── vite.config.js      # Tells Vite to use the React JSX compiler
 ├── package.json        # Dependencies: React, Firebase, Vite
