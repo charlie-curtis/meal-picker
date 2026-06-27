@@ -262,19 +262,16 @@ export default function App() {
         <div className="title-bar">
           <div className="title-block">
             <h1>Pick For Us</h1>
-            <p className="subtitle">Share the link. Both add. The app picks.</p>
+            <p className="subtitle">Add places together. Let the app pick.</p>
           </div>
           <div className="title-actions">
-            {viewerCount > 0 && (
+            {viewerCount > 1 && (
               <span
                 className="viewer-count"
-                data-tooltip={viewerCount === 1
-                  ? "Just you — share the link to invite a partner"
-                  : `${viewerCount} people in this room`}
-                aria-label={`${viewerCount} ${viewerCount === 1 ? 'person' : 'people'} in this room`}
+                aria-label={`${viewerCount} people in this room`}
               >
                 <span className="viewer-dot" aria-hidden="true" />
-                {viewerCount === 1 ? 'Just you' : `${viewerCount} here`}
+                {`${viewerCount} here`}
               </span>
             )}
             <button className="btn-share-icon" onClick={copyLink} aria-label="Copy room link">
@@ -322,7 +319,7 @@ export default function App() {
                         strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span className="empty-title">No restaurants yet</span>
-                <span className="empty-hint">Add a place, then share this link so your partner can add too.</span>
+                <span className="empty-hint">Add your first place to start the list.</span>
               </li>
             ) : (
               entries.map(([key, name], i) => {
@@ -351,7 +348,7 @@ export default function App() {
 
         <div className="pick-row">
           <button className="btn-pick" onClick={pickRandom} disabled={spinning || !entries.length}>
-            {spinning ? 'Picking…' : 'Pick one'}
+            {spinning ? 'Picking…' : entries.length === 0 ? 'Add a place to pick' : 'Pick one'}
           </button>
           <div className="result" role="status" aria-live="polite">
             {winner && !spinning ? `Let's go to ${winner}!` : ''}
@@ -367,7 +364,7 @@ export default function App() {
             onClick={() => setHelpOpen(o => !o)}
           >
             <Chevron />
-            Browse suggestions
+            Need ideas? Browse suggestions
           </button>
           <div id="help-panel" className={`collapse ${helpOpen ? 'open' : ''}`}>
             <div className="collapse-inner" {...(!helpOpen ? { inert: '' } : {})}>
@@ -406,7 +403,7 @@ export default function App() {
             onClick={() => setNearbyOpen(o => !o)}
           >
             <Chevron />
-            Find nearby restaurants
+            Find restaurants nearby
           </button>
           <div id="nearby-panel" className={`collapse ${nearbyOpen ? 'open' : ''}`}>
             <div className="collapse-inner" {...(!nearbyOpen ? { inert: '' } : {})}>
