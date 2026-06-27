@@ -262,7 +262,7 @@ export default function App() {
         <div className="title-bar">
           <div className="title-block">
             <h1>Pick For Us</h1>
-            <p className="subtitle">Add places together. We'll pick one.</p>
+            <p className="subtitle">Add places together. We pick one.</p>
           </div>
           <div className="title-actions">
             {viewerCount > 1 && (

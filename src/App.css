@@ -261,18 +261,21 @@ h1 {
 /* ==========================================================================
    Input + Add row (shared 40px height)
    ========================================================================== */
-.input-section { display: flex; flex-direction: column; gap: var(--space-5); }
+.input-section { display: flex; flex-direction: column; gap: var(--space-4); }
 .input-row { display: flex; gap: 0; }
 
 .input-row input[type="text"] {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
+.input-row input[type="text"]:hover { border-right-color: var(--color-border); }
 .input-row .btn-add {
-  border-left: none;
+  border-left: 1px solid var(--color-border);
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
+  background: var(--color-surface-subtle);
 }
+.input-row .btn-add:hover { background: var(--color-surface-hover); border-left-color: var(--color-border); }
 .input-row input[type="text"]:focus-visible { position: relative; z-index: 1; }
 
 input[type="text"] {
