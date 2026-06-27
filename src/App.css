@@ -411,6 +411,7 @@ button {
 .restaurant-list li:hover .remove-btn,
 .remove-btn:focus-visible { opacity: 1; }
 .remove-btn:hover { color: var(--color-danger); background: var(--color-surface-hover); }
+.remove-btn:disabled { opacity: 0; cursor: default; pointer-events: none; }
 
 /* ==========================================================================
    Empty state

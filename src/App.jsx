@@ -338,6 +338,7 @@ export default function App() {
                       className="remove-btn"
                       aria-label={`Remove ${name}`}
                       onClick={() => removeRestaurant(key)}
+                      disabled={spinning}
                     >
                       <span aria-hidden="true">×</span>
                     </button>
