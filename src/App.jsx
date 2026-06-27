@@ -262,7 +262,7 @@ export default function App() {
         <div className="title-bar">
           <div className="title-block">
             <h1>Pick For Us</h1>
-            <p className="subtitle">Add places together. Let the app pick.</p>
+            <p className="subtitle">Add places together. We'll pick one.</p>
           </div>
           <div className="title-actions">
             {viewerCount > 1 && (
@@ -309,51 +309,57 @@ export default function App() {
           </div>
           {dupMsg && <p className="dup-msg" role="alert">{dupMsg}</p>}
 
-          <ul className="restaurant-list" aria-label={`${entries.length} restaurants added`}>
-            {entries.length === 0 ? (
-              <li className="empty-state">
-                <svg className="empty-icon" width="36" height="36" viewBox="0 0 24 24"
-                     fill="none" aria-hidden="true">
-                  <path d="M7 3v8a2 2 0 0 1-2 2H4M5.5 3v6M4 3v6M17 3c-1.5 0-2.5 2-2.5 5s1 3 2.5 3 2.5 0 2.5-3-1-5-2.5-5ZM17 11v10"
-                        stroke="currentColor" strokeWidth="1.4"
-                        strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="empty-title">No restaurants yet</span>
-                <span className="empty-hint">Add your first place to start the list.</span>
-              </li>
-            ) : (
-              entries.map(([key, name], i) => {
-                const isHighlight = spinning && spinIndex === i
-                const isWinner = !spinning && winner === name
-                return (
-                  <li key={key} className={isHighlight ? 'highlight' : isWinner ? 'winner' : ''}>
-                    <span>{name}</span>
-                    {isWinner && (
-                      <span className="winner-badge" aria-hidden="true">★ Winner</span>
-                    )}
-                    <button
-                      className="remove-btn"
-                      aria-label={`Remove ${name}`}
-                      onClick={() => removeRestaurant(key)}
-                      disabled={spinning}
-                    >
-                      <span aria-hidden="true">×</span>
-                    </button>
-                  </li>
-                )
-              })
+          <div className="list-wrapper">
+            {entries.length > 0 && (
+              <div className="list-meta" aria-hidden="true">
+                {entries.length} {entries.length === 1 ? 'place' : 'places'}
+              </div>
             )}
-          </ul>
-        </div>
-
-        <div className="pick-row">
-          <button className="btn-pick" onClick={pickRandom} disabled={spinning || !entries.length}>
-            {spinning ? 'Picking…' : entries.length === 0 ? 'Add a place to pick' : 'Pick one'}
-          </button>
-          <div className="result" role="status" aria-live="polite">
-            {winner && !spinning ? `Let's go to ${winner}!` : ''}
+            <ul className="restaurant-list" aria-label={`${entries.length} restaurants added`}>
+              {entries.length === 0 ? (
+                <li className="empty-state">
+                  <svg className="empty-icon" width="36" height="36" viewBox="0 0 24 24"
+                       fill="none" aria-hidden="true">
+                    <path d="M7 3v8a2 2 0 0 1-2 2H4M5.5 3v6M4 3v6M17 3c-1.5 0-2.5 2-2.5 5s1 3 2.5 3 2.5 0 2.5-3-1-5-2.5-5ZM17 11v10"
+                          stroke="currentColor" strokeWidth="1.4"
+                          strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="empty-title">No restaurants yet</span>
+                  <span className="empty-hint">Add your first place to start the list.</span>
+                </li>
+              ) : (
+                entries.map(([key, name], i) => {
+                  const isHighlight = spinning && spinIndex === i
+                  const isWinner = !spinning && winner === name
+                  return (
+                    <li key={key} className={isHighlight ? 'highlight' : isWinner ? 'winner' : ''}>
+                      <span>{name}</span>
+                      <button
+                        className="remove-btn"
+                        aria-label={`Remove ${name}`}
+                        onClick={() => removeRestaurant(key)}
+                        disabled={spinning}
+                      >
+                        <span aria-hidden="true">×</span>
+                      </button>
+                    </li>
+                  )
+                })
+              )}
+            </ul>
           </div>
         </div>
+
+        {(entries.length > 0 || spinning) && (
+          <div className="pick-row">
+            <button className="btn-pick" onClick={pickRandom} disabled={spinning}>
+              {spinning ? 'Picking…' : winner ? 'Pick again' : 'Pick one'}
+            </button>
+            <div className="result" role="status" aria-live="polite">
+              {winner && !spinning ? `Let's go to ${winner}!` : ''}
+            </div>
+          </div>
+        )}
 
         {/* Discovery: static suggestions (secondary, below the fold) */}
         <div className="help-section">

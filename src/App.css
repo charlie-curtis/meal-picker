@@ -91,7 +91,7 @@
   --ease-emphasized-decel: cubic-bezier(0.05, 0.7, 0.1, 1.0);
 
   /* --- Focus ring --- */
-  --focus-ring: 0 0 0 3px rgba(13, 148, 136, 0.35);
+  --focus-ring: 0 0 0 2px rgba(13, 148, 136, 0.22);
 }
 
 /* ==========================================================================
@@ -262,7 +262,18 @@ h1 {
    Input + Add row (shared 40px height)
    ========================================================================== */
 .input-section { display: flex; flex-direction: column; gap: var(--space-5); }
-.input-row { display: flex; gap: var(--space-2); }
+.input-row { display: flex; gap: 0; }
+
+.input-row input[type="text"] {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.input-row .btn-add {
+  border-left: none;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.input-row input[type="text"]:focus-visible { position: relative; z-index: 1; }
 
 input[type="text"] {
   flex: 1;
@@ -376,15 +387,6 @@ button {
   box-shadow: var(--elev-1);
   animation: winner-pop var(--motion-medium) var(--ease-emphasized);
 }
-.winner-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: var(--text-label);
-  font-weight: var(--weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
 
 @keyframes winner-pop {
   0%   { transform: scale(1); }
@@ -414,6 +416,20 @@ button {
 .remove-btn:focus-visible { opacity: 1; }
 .remove-btn:hover { color: var(--color-danger); background: var(--color-surface-hover); }
 .remove-btn:disabled { opacity: 0; cursor: default; pointer-events: none; }
+
+/* ==========================================================================
+   List wrapper + meta count
+   ========================================================================== */
+.list-wrapper { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.list-meta {
+  font-size: var(--text-label);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 var(--space-1);
+}
 
 /* ==========================================================================
    Empty state
