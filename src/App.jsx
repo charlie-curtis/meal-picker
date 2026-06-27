@@ -52,7 +52,7 @@ export default function App() {
   const [inputVal, setInputVal] = useState('')
   const [helpOpen, setHelpOpen] = useState(false)
   const [nearbyOpen, setNearbyOpen] = useState(false)
-  const [copyLabel, setCopyLabel] = useState('Share')
+  const [copyLabel, setCopyLabel] = useState('Invite')
   const [locationInput, setLocationInput] = useState('')
   const [radius, setRadius] = useState(5)
   const [nearbyResults, setNearbyResults] = useState([])
@@ -168,7 +168,7 @@ export default function App() {
   function copyLink() {
     navigator.clipboard.writeText(shareUrl)
     setCopyLabel('Copied!')
-    setTimeout(() => setCopyLabel('Share'), 2000)
+    setTimeout(() => setCopyLabel('Invite'), 2000)
   }
 
   function getCurrentPosition() {
@@ -262,17 +262,19 @@ export default function App() {
         <div className="title-bar">
           <div className="title-block">
             <h1>Pick For Us</h1>
-            <p className="subtitle">Both add. Neither decides.</p>
+            <p className="subtitle">Share the link. Both add. The app picks.</p>
           </div>
           <div className="title-actions">
             {viewerCount > 0 && (
               <span
                 className="viewer-count"
-                data-tooltip={`${viewerCount} ${viewerCount === 1 ? "person" : "people"} who said 'I don't care, you pick'`}
+                data-tooltip={viewerCount === 1
+                  ? "Just you — share the link to invite a partner"
+                  : `${viewerCount} people in this room`}
                 aria-label={`${viewerCount} ${viewerCount === 1 ? 'person' : 'people'} in this room`}
               >
                 <span className="viewer-dot" aria-hidden="true" />
-                {viewerCount}
+                {viewerCount === 1 ? 'Just you' : `${viewerCount} here`}
               </span>
             )}
             <button className="btn-share-icon" onClick={copyLink} aria-label="Copy room link">
@@ -320,7 +322,7 @@ export default function App() {
                         strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span className="empty-title">No restaurants yet</span>
-                <span className="empty-hint">Add one above, or browse suggestions below.</span>
+                <span className="empty-hint">Add a place, then share this link so your partner can add too.</span>
               </li>
             ) : (
               entries.map(([key, name], i) => {

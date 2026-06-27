@@ -425,13 +425,15 @@ button {
 }
 .empty-state .empty-icon { color: var(--color-text-disabled); }
 .empty-state .empty-title {
-  font-size: var(--text-body);
-  font-weight: var(--weight-medium);
-  color: var(--color-text-primary);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-secondary);
 }
 .empty-state .empty-hint {
-  font-size: var(--text-body-sm);
+  font-size: var(--text-label);
   color: var(--color-text-tertiary);
+  line-height: 1.5;
+  max-width: 240px;
 }
 
 /* ==========================================================================
