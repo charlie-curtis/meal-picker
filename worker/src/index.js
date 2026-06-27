@@ -6,14 +6,20 @@ const ALLOWED_ORIGINS = [
   'https://www.justpickfood.com',
 ]
 
+function isAllowedOrigin(origin) {
+  return ALLOWED_ORIGINS.includes(origin)
+}
+
 function corsHeaders(origin) {
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
-  return {
-    'Access-Control-Allow-Origin': allowed,
+  const headers = {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Vary': 'Origin',
   }
+  if (isAllowedOrigin(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin
+  }
+  return headers
 }
 
 function json(data, status = 200, origin = '') {
@@ -21,6 +27,48 @@ function json(data, status = 200, origin = '') {
     status,
     headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
   })
+}
+
+function isValidRoute(pathname, method) {
+  return (pathname === '/nearby' && method === 'POST') ||
+         (pathname === '/geocode' && method === 'GET')
+}
+
+function isFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function sanitizedNearbyBody(body) {
+  const circle = body?.locationRestriction?.circle
+  const center = circle?.center
+  const latitude = center?.latitude
+  const longitude = center?.longitude
+  const radius = circle?.radius
+  const maxResultCount = body?.maxResultCount ?? 20
+
+  if (!isFiniteNumber(latitude) || latitude < -90 || latitude > 90) {
+    throw new Error('Invalid latitude')
+  }
+  if (!isFiniteNumber(longitude) || longitude < -180 || longitude > 180) {
+    throw new Error('Invalid longitude')
+  }
+  if (!isFiniteNumber(radius) || radius <= 0 || radius > 16093.4) {
+    throw new Error('Invalid radius')
+  }
+  if (!Number.isInteger(maxResultCount) || maxResultCount < 1 || maxResultCount > 20) {
+    throw new Error('Invalid result count')
+  }
+
+  return {
+    includedTypes: ['restaurant'],
+    maxResultCount,
+    locationRestriction: {
+      circle: {
+        center: { latitude, longitude },
+        radius,
+      },
+    },
+  }
 }
 
 // Global daily cap — limits total spend regardless of who is calling.
@@ -37,18 +85,30 @@ async function isRateLimited(env) {
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') ?? ''
+
+    if (!isAllowedOrigin(origin)) {
+      return json({ error: 'Forbidden' }, 403, origin)
+    }
+
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders(origin) })
     }
 
-    if (await isRateLimited(env)) {
-      return json({ error: 'Rate limit exceeded. Try again in a minute.' }, 429, origin)
+    const { pathname, searchParams } = new URL(request.url)
+    if (!isValidRoute(pathname, request.method)) {
+      return json({ error: 'Not found' }, 404, origin)
     }
 
-    const { pathname } = new URL(request.url)
-
     if (pathname === '/nearby' && request.method === 'POST') {
-      const body = await request.json()
+      let body
+      try {
+        body = sanitizedNearbyBody(await request.json())
+      } catch {
+        return json({ error: 'Invalid nearby search request' }, 400, origin)
+      }
+      if (await isRateLimited(env)) {
+        return json({ error: 'Rate limit exceeded. Try again in a minute.' }, 429, origin)
+      }
       const res = await fetch('https://places.googleapis.com/v1/places:searchNearby', {
         method: 'POST',
         headers: {
@@ -62,14 +122,15 @@ export default {
     }
 
     if (pathname === '/geocode' && request.method === 'GET') {
-      const address = new URL(request.url).searchParams.get('address')
+      const address = searchParams.get('address')?.trim()
       if (!address) return json({ error: 'Missing address' }, 400, origin)
+      if (await isRateLimited(env)) {
+        return json({ error: 'Rate limit exceeded. Try again in a minute.' }, 429, origin)
+      }
       const res = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${env.GOOGLE_PLACES_API_KEY}`
       )
       return json(await res.json(), res.status, origin)
     }
-
-    return new Response('Not found', { status: 404, headers: corsHeaders(origin) })
   },
 }
