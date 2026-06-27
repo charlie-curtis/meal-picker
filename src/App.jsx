@@ -261,7 +261,7 @@ export default function App() {
         {/* Title + inline share — collaboration is the differentiator, surface it here */}
         <div className="title-bar">
           <div className="title-block">
-            <h1>Pick For Us</h1>
+            <h1>Just Pick Food</h1>
             <p className="subtitle">Add places together. We pick one.</p>
           </div>
           <div className="title-actions">
