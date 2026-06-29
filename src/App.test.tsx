@@ -2,43 +2,48 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type FirebaseData = Record<string, any>
+type Ref = { path: string }
+type SnapshotCallback = (snap: { val: () => any }) => void
+
 const firebaseMock = vi.hoisted(() => {
-  let data = {}
-  let listeners = new Map()
+  let data: FirebaseData = {}
+  let listeners = new Map<string, Set<SnapshotCallback>>()
   let keyCounter = 0
 
-  function pathParts(path) {
+  function pathParts(path: string): string[] {
     return path.split('/').filter(Boolean)
   }
 
-  function getAtPath(path) {
-    return pathParts(path).reduce((value, part) => value?.[part], data)
+  function getAtPath(path: string): any {
+    return pathParts(path).reduce((value: any, part) => value?.[part], data)
   }
 
-  function setAtPath(path, value) {
+  function setAtPath(path: string, value: any) {
     const parts = pathParts(path)
-    let cursor = data
+    let cursor: any = data
     parts.slice(0, -1).forEach(part => {
       cursor[part] ??= {}
       cursor = cursor[part]
     })
-    cursor[parts.at(-1)] = value
+    cursor[parts.at(-1)!] = value
   }
 
-  function removeAtPath(path) {
+  function removeAtPath(path: string) {
     const parts = pathParts(path)
-    let cursor = data
+    let cursor: any = data
     parts.slice(0, -1).forEach(part => {
       cursor = cursor?.[part]
     })
-    if (cursor) delete cursor[parts.at(-1)]
+    if (cursor) delete cursor[parts.at(-1)!]
   }
 
-  function snap(path) {
+  function snap(path: string) {
     return { val: () => structuredClone(getAtPath(path) ?? null) }
   }
 
-  function notify(path) {
+  function notify(path: string) {
     const parts = pathParts(path)
     const affected = [path]
     for (let i = parts.length - 1; i > 0; i--) {
@@ -56,8 +61,8 @@ const firebaseMock = vi.hoisted(() => {
       listeners = new Map()
       keyCounter = 0
     },
-    ref: (_db, path) => ({ path }),
-    push(parentRef, value) {
+    ref: (_db: any, path: string): Ref => ({ path }),
+    push(parentRef: Ref, value?: any) {
       const childRef = { path: `${parentRef.path}/mock-key-${++keyCounter}` }
       if (value !== undefined) {
         setAtPath(childRef.path, value)
@@ -65,12 +70,12 @@ const firebaseMock = vi.hoisted(() => {
       }
       return childRef
     },
-    remove(targetRef) {
+    remove(targetRef: Ref) {
       removeAtPath(targetRef.path)
       notify(targetRef.path)
       return Promise.resolve()
     },
-    set(targetRef, value) {
+    set(targetRef: Ref, value: any) {
       setAtPath(targetRef.path, value)
       notify(targetRef.path)
       return Promise.resolve()
@@ -78,9 +83,9 @@ const firebaseMock = vi.hoisted(() => {
     onDisconnect() {
       return { remove: vi.fn() }
     },
-    onValue(targetRef, callback) {
+    onValue(targetRef: Ref, callback: SnapshotCallback) {
       if (!listeners.has(targetRef.path)) listeners.set(targetRef.path, new Set())
-      listeners.get(targetRef.path).add(callback)
+      listeners.get(targetRef.path)!.add(callback)
       if (targetRef.path === '.info/connected') {
         callback({ val: () => true })
       } else {
@@ -109,7 +114,7 @@ async function renderApp({ reducedMotion = false } = {}) {
   vi.resetModules()
   firebaseMock.reset()
   window.history.replaceState({}, '', '/')
-  window.matchMedia = vi.fn().mockReturnValue({ matches: reducedMotion })
+  window.matchMedia = vi.fn().mockReturnValue({ matches: reducedMotion }) as any
   const clipboardWriteText = vi.fn().mockResolvedValue(undefined)
   vi.stubGlobal('navigator', {
     ...navigator,
@@ -117,13 +122,13 @@ async function renderApp({ reducedMotion = false } = {}) {
     geolocation: navigator.geolocation,
   })
 
-  const { default: App } = await import('./App.jsx')
+  const { default: App } = await import('./App')
   const user = userEvent.setup()
   render(<App />)
   return { clipboardWriteText, user }
 }
 
-function addPlace(name) {
+function addPlace(name: string) {
   const input = screen.getByLabelText('Restaurant name')
   fireEvent.change(input, { target: { value: name } })
   fireEvent.click(screen.getByRole('button', { name: 'Add' }))
@@ -134,7 +139,7 @@ describe('App', () => {
     vi.useRealTimers()
     vi.restoreAllMocks()
     vi.unstubAllEnvs()
-    delete global.fetch
+    ;(global as any).fetch = undefined
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: undefined,
@@ -265,7 +270,7 @@ describe('App', () => {
   })
 
   it('searches nearby restaurants by address and lets a result be added', async () => {
-    global.fetch = vi.fn(async url => {
+    ;(global as any).fetch = vi.fn(async (url: string) => {
       if (url.includes('/geocode')) {
         return {
           ok: true,
@@ -296,8 +301,8 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Search' }))
 
     expect(await screen.findByText('2 nearby')).toBeInTheDocument()
-    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/geocode?address=30301'))
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect((global as any).fetch).toHaveBeenCalledWith(expect.stringContaining('/geocode?address=30301'))
+    expect((global as any).fetch).toHaveBeenCalledWith(
       'https://worker.example/nearby',
       expect.objectContaining({
         method: 'POST',
@@ -305,13 +310,13 @@ describe('App', () => {
       })
     )
 
-    const nearbyResults = screen.getByText('2 nearby').closest('.nearby-results')
-    await userEvent.click(within(nearbyResults).getByRole('button', { name: 'Cava' }))
+    const nearbyResults = screen.getByText('2 nearby').closest('.nearby-results')!
+    await userEvent.click(within(nearbyResults as HTMLElement).getByRole('button', { name: 'Cava' }))
     expect(screen.getByText('1 place')).toBeInTheDocument()
   })
 
   it('reports address search errors', async () => {
-    global.fetch = vi.fn(async () => ({
+    ;(global as any).fetch = vi.fn(async () => ({
       ok: true,
       json: async () => ({ status: 'ZERO_RESULTS', results: [] }),
     }))
@@ -331,12 +336,12 @@ describe('App', () => {
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
-        getCurrentPosition: vi.fn(success => {
-          success({ coords: { latitude: 40.7, longitude: -74 } })
+        getCurrentPosition: vi.fn((success: PositionCallback) => {
+          success({ coords: { latitude: 40.7, longitude: -74 } } as GeolocationPosition)
         }),
       },
     })
-    global.fetch = vi.fn(async () => ({
+    ;(global as any).fetch = vi.fn(async () => ({
       ok: true,
       json: async () => ({ places: [{ displayName: { text: 'Local Diner' } }] }),
     }))
@@ -354,7 +359,9 @@ describe('App', () => {
     Object.defineProperty(navigator, 'geolocation', {
       configurable: true,
       value: {
-        getCurrentPosition: vi.fn((_success, failure) => failure()),
+        getCurrentPosition: vi.fn((_success: PositionCallback, failure: PositionErrorCallback) => failure({
+          code: 1, message: 'denied', PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3
+        })),
       },
     })
     vi.stubEnv('VITE_WORKER_URL', 'https://worker.example')

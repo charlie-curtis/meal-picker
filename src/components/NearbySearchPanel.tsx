@@ -1,4 +1,20 @@
-import { Chevron, LocationIcon } from './Icons.jsx'
+import { Chevron, LocationIcon } from './Icons'
+
+interface NearbySearchPanelProps {
+  open: boolean
+  locationInput: string
+  radius: number
+  nearbyResults: string[]
+  locationLoading: boolean
+  locationError: string
+  addedNames: Set<string>
+  onToggle: () => void
+  onLocationInputChange: (value: string) => void
+  onRadiusChange: (value: number) => void
+  onFindNearby: () => void
+  onUseMyLocation: () => void
+  onAddRestaurant: (name: string, refocus: boolean) => void
+}
 
 export function NearbySearchPanel({
   open,
@@ -14,7 +30,7 @@ export function NearbySearchPanel({
   onFindNearby,
   onUseMyLocation,
   onAddRestaurant,
-}) {
+}: NearbySearchPanelProps) {
   return (
     <div className="nearby-section">
       <button
@@ -27,7 +43,7 @@ export function NearbySearchPanel({
         Find restaurants nearby
       </button>
       <div id="nearby-panel" className={`collapse ${open ? 'open' : ''}`}>
-        <div className="collapse-inner" {...(!open ? { inert: '' } : {})}>
+        <div className="collapse-inner" {...(!open ? { inert: '' as unknown as boolean } : {})}>
           <div className="nearby-tray">
             <div className="nearby-controls">
               <label htmlFor="location-input" className="sr-only">Address or zip code</label>

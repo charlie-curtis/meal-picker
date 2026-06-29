@@ -1,6 +1,6 @@
-import { Chevron } from './Icons.jsx'
+import { Chevron } from './Icons'
 
-const SUGGESTIONS = {
+const SUGGESTIONS: Record<string, string[]> = {
   'Burgers':    ["McDonald's", "Wendy's", "Burger King", "Shake Shack", "Chick-fil-A"],
   'Pizza':      ["Domino's", "Pizza Hut", "Papa John's", "Little Caesars"],
   'Mexican':    ["Chipotle", "Taco Bell", "Qdoba"],
@@ -9,12 +9,19 @@ const SUGGESTIONS = {
   'Sandwiches': ["Subway", "Panera Bread", "Jimmy John's"],
 }
 
+interface SuggestionsPanelProps {
+  open: boolean
+  addedNames: Set<string>
+  onToggle: () => void
+  onAddRestaurant: (name: string, refocus: boolean) => void
+}
+
 export function SuggestionsPanel({
   open,
   addedNames,
   onToggle,
   onAddRestaurant,
-}) {
+}: SuggestionsPanelProps) {
   return (
     <div className="help-section">
       <button
@@ -27,7 +34,7 @@ export function SuggestionsPanel({
         Need ideas? Browse suggestions
       </button>
       <div id="help-panel" className={`collapse ${open ? 'open' : ''}`}>
-        <div className="collapse-inner" {...(!open ? { inert: '' } : {})}>
+        <div className="collapse-inner" {...(!open ? { inert: '' as unknown as boolean } : {})}>
           <div className="help-tray">
             {Object.entries(SUGGESTIONS).map(([category, items]) => (
               <div key={category} className="help-category">

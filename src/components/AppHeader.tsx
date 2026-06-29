@@ -1,6 +1,12 @@
-import { LinkIcon } from './Icons.jsx'
+import { LinkIcon } from './Icons'
 
-export function AppHeader({ viewerCount, copyLabel, onCopyLink }) {
+interface AppHeaderProps {
+  viewerCount: number
+  copyLabel: string
+  onCopyLink: () => void
+}
+
+export function AppHeader({ viewerCount, copyLabel, onCopyLink }: AppHeaderProps) {
   return (
     <div className="title-bar">
       <div className="title-block">

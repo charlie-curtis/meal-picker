@@ -1,4 +1,12 @@
-import { EmptyStateIcon } from './Icons.jsx'
+import { EmptyStateIcon } from './Icons'
+
+interface RestaurantListProps {
+  entries: [string, string][]
+  winner: string | null
+  spinning: boolean
+  spinIndex: number | null
+  onRemoveRestaurant: (key: string) => void
+}
 
 export function RestaurantList({
   entries,
@@ -6,7 +14,7 @@ export function RestaurantList({
   spinning,
   spinIndex,
   onRemoveRestaurant,
-}) {
+}: RestaurantListProps) {
   return (
     <div className="list-wrapper">
       {entries.length > 0 && (

@@ -1,4 +1,11 @@
-export function PickControls({ show, winner, spinning, onPickRandom }) {
+interface PickControlsProps {
+  show: boolean
+  winner: string | null
+  spinning: boolean
+  onPickRandom: () => void
+}
+
+export function PickControls({ show, winner, spinning, onPickRandom }: PickControlsProps) {
   if (!show) return null
 
   return (

@@ -1,3 +1,14 @@
+import { RefObject } from 'react'
+
+interface RestaurantFormProps {
+  inputRef: RefObject<HTMLInputElement | null>
+  inputVal: string
+  dupMsg: string
+  spinning: boolean
+  onInputChange: (value: string) => void
+  onAddRestaurant: (name?: string, refocus?: boolean) => void
+}
+
 export function RestaurantForm({
   inputRef,
   inputVal,
@@ -5,7 +16,7 @@ export function RestaurantForm({
   spinning,
   onInputChange,
   onAddRestaurant,
-}) {
+}: RestaurantFormProps) {
   return (
     <>
       <div className="input-row">

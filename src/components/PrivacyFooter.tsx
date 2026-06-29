@@ -1,4 +1,4 @@
-import { LockIcon } from './Icons.jsx'
+import { LockIcon } from './Icons'
 
 export function PrivacyFooter() {
   return (

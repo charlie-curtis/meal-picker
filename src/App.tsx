@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { initializeApp } from 'firebase/app'
 import { getDatabase, ref, push, remove, set, onValue, onDisconnect } from 'firebase/database'
-import { getCurrentPosition, geocodeAddress, searchNearbyPlaces } from './services/locationService.js'
-import { AppHeader } from './components/AppHeader.jsx'
-import { NearbySearchPanel } from './components/NearbySearchPanel.jsx'
-import { PickControls } from './components/PickControls.jsx'
-import { PrivacyFooter } from './components/PrivacyFooter.jsx'
-import { RestaurantForm } from './components/RestaurantForm.jsx'
-import { RestaurantList } from './components/RestaurantList.jsx'
-import { SuggestionsPanel } from './components/SuggestionsPanel.jsx'
+import { getCurrentPosition, geocodeAddress, searchNearbyPlaces } from './services/locationService'
+import { AppHeader } from './components/AppHeader'
+import { NearbySearchPanel } from './components/NearbySearchPanel'
+import { PickControls } from './components/PickControls'
+import { PrivacyFooter } from './components/PrivacyFooter'
+import { RestaurantForm } from './components/RestaurantForm'
+import { RestaurantList } from './components/RestaurantList'
+import { SuggestionsPanel } from './components/SuggestionsPanel'
 import './App.css'
 
 const firebaseConfig = {
@@ -31,33 +31,33 @@ if (!roomId) {
 }
 const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomId}`
 
-const prefersReducedMotion = () =>
+const prefersReducedMotion = (): boolean =>
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 
-function friendlyError(e) {
+function friendlyError(e: unknown): string {
   if (e instanceof TypeError)
     return 'Search unavailable. Please try again later.'
-  return e.message
+  return (e as Error).message
 }
 
 export default function App() {
-  const [restaurants, setRestaurants] = useState({})
-  const [winner, setWinner] = useState(null)
+  const [restaurants, setRestaurants] = useState<Record<string, string>>({})
+  const [winner, setWinner] = useState<string | null>(null)
   const [spinning, setSpinning] = useState(false)
-  const [spinIndex, setSpinIndex] = useState(null)
+  const [spinIndex, setSpinIndex] = useState<number | null>(null)
   const [inputVal, setInputVal] = useState('')
   const [helpOpen, setHelpOpen] = useState(false)
   const [nearbyOpen, setNearbyOpen] = useState(false)
   const [copyLabel, setCopyLabel] = useState('Invite')
   const [locationInput, setLocationInput] = useState('')
   const [radius, setRadius] = useState(5)
-  const [nearbyResults, setNearbyResults] = useState([])
+  const [nearbyResults, setNearbyResults] = useState<string[]>([])
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationError, setLocationError] = useState('')
   const [dupMsg, setDupMsg] = useState('')
   const [viewerCount, setViewerCount] = useState(0)
-  const inputRef = useRef(null)
-  const spinTimer = useRef(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const spinTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const restaurantsRef = ref(db, `rooms/${roomId}/restaurants`)
   const winnerRef = ref(db, `rooms/${roomId}/winner`)
@@ -80,7 +80,8 @@ export default function App() {
       }
     })
     const unsubPresence = onValue(ref(db, `rooms/${roomId}/presence`), snap => {
-      setViewerCount(snap.val() ? Object.keys(snap.val()).length : 0)
+      const val = snap.val() as Record<string, boolean> | null
+      setViewerCount(val ? Object.keys(val).length : 0)
     })
 
     return () => {
@@ -93,12 +94,10 @@ export default function App() {
     }
   }, [])
 
-  const entries = Object.entries(restaurants)
+  const entries: [string, string][] = Object.entries(restaurants)
   const addedNames = new Set(entries.map(([, n]) => n.toLowerCase()))
 
-  // refocus=true only when called from the manual input — chips pass false
-  // so multi-adding from chips doesn't yank keyboard focus away
-  function addRestaurant(name, refocus = true) {
+  function addRestaurant(name?: string, refocus = true) {
     if (spinning) return
     const n = (name ?? inputVal).trim()
     if (!n) return
@@ -114,7 +113,7 @@ export default function App() {
     if (refocus) inputRef.current?.focus()
   }
 
-  function removeRestaurant(key) {
+  function removeRestaurant(key: string) {
     remove(ref(db, `rooms/${roomId}/restaurants/${key}`))
     remove(winnerRef)
     setWinner(null)
@@ -134,7 +133,7 @@ export default function App() {
       return
     }
 
-    const delays = []
+    const delays: number[] = []
     let d = 70
     while (d < 600) {
       delays.push(d)
