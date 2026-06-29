@@ -76,6 +76,29 @@ The JSX renders:
 
 `Chevron` is the only small helper component; the rest stays in the main `App` function for simplicity.
 
+## Firebase Data Model
+
+Firebase stores rooms as a JSON tree:
+
+```json
+{
+  "rooms": {
+    "abc123xyz": {
+      "restaurants": {
+        "-NxKj2...": "Chipotle",
+        "-NxKj3...": "Shake Shack"
+      },
+      "winner": "Chipotle",
+      "presence": {
+        "-NxPresence...": true
+      }
+    }
+  }
+}
+```
+
+Restaurant and presence keys are Firebase push IDs: random, collision-safe, and time-ordered. The winner is a plain string containing the restaurant name. Presence entries are created per connected browser and removed automatically with Firebase `onDisconnect`.
+
 ## `src/App.css`
 
 Styles are built on CSS custom properties defined in `:root`.
@@ -95,13 +118,42 @@ Most component styles reference these tokens, so changing a token propagates thr
 
 ## Worker Proxy
 
-`worker/src/index.js` is a Cloudflare Worker that:
+Nearby restaurant search routes through `worker/src/index.js`, a Cloudflare Worker, rather than calling Google APIs directly from the browser.
+
+```text
+Browser ──▶ Cloudflare Worker ──▶ Google Places API
+                  │         └────▶ Google Geocoding API
+                  └──────────────▶ KV (global daily counter)
+```
+
+The Worker:
 
 - Receives browser requests from the app.
 - Adds CORS headers for the production site origins.
 - Keeps the Google API key server-side via `env.GOOGLE_PLACES_API_KEY`.
 - Proxies `/nearby` to Google Places Nearby Search.
 - Proxies `/geocode` to Google Geocoding.
-- Uses Cloudflare KV as a simple global daily request counter.
+- Uses Cloudflare KV as a simple global daily request counter to bound API usage.
 
 The Worker is intentionally small. It is a spend-control and secret-hiding proxy, not a full backend application.
+
+### Why a proxy?
+
+The Google API key must never appear in browser code. Anything shipped to the client is publicly visible, so the Worker keeps the key server-side as an encrypted secret and the browser never sees it.
+
+### CORS
+
+The Worker returns CORS headers for the production site origins. This lets the production frontend read Worker responses in the browser.
+
+### Rate limiting
+
+The Worker checks a global counter stored in Cloudflare KV before proxying requests to Google. The counter is keyed by day and capped at a small daily limit across all users. When the cap is hit, the Worker returns a `429` error and the app surfaces a message.
+
+The counter is intentionally simple and global. Because Cloudflare KV is eventually consistent, a burst of simultaneous requests can overshoot the exact cap slightly, but it still bounds usage for this small app. For an exact global counter, the Worker would need a stronger coordination primitive such as Durable Objects.
+
+### Routes
+
+| Method | Path | Proxies to |
+|---|---|---|
+| `POST` | `/nearby` | Google Places Nearby Search API |
+| `GET` | `/geocode?address=...` | Google Geocoding API |
