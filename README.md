@@ -47,6 +47,6 @@ Detailed architecture notes live in [docs/architecture.md](docs/architecture.md)
 
 ---
 
-## Getting started
+## Contributing
 
-Setup instructions, local commands, and Worker deployment notes live in [docs/getting-started.md](docs/getting-started.md).
+Contributions are welcome through issues and pull requests. Local development notes and PR guidance live in [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
