@@ -27,12 +27,9 @@ Each session gets a **room ID** generated on first load and stored in the URL (`
 
 ---
 
-## Project docs
+## Architecture notes
 
-The README is intentionally kept high-level.
-
-- [Getting started](docs/getting-started.md): local setup, commands, and Worker deployment notes
-- [Architecture notes](docs/architecture.md): file structure, React app walkthrough, CSS tokens, Firebase data, and Worker proxy details
+Detailed architecture notes live in [docs/architecture.md](docs/architecture.md), including the file structure, React app walkthrough, CSS tokens, Firebase data model, and Worker proxy details.
 
 ---
 
