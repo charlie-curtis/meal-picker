@@ -43,8 +43,8 @@ const prefersReducedMotion = () =>
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
 
 function friendlyError(e) {
-  if (e instanceof TypeError && /fetch|network/i.test(e.message))
-    return 'Search unavailable — check your connection and try again.'
+  if (e instanceof TypeError)
+    return 'Search unavailable — please try again later.'
   return e.message
 }
 
@@ -107,6 +107,7 @@ export default function App() {
   // refocus=true only when called from the manual input — chips pass false
   // so multi-adding from chips doesn't yank keyboard focus away
   function addRestaurant(name, refocus = true) {
+    if (spinning) return
     const n = (name ?? inputVal).trim()
     if (!n) return
     const exists = entries.some(([, existing]) => existing.toLowerCase() === n.toLowerCase())
