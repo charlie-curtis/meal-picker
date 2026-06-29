@@ -7,15 +7,31 @@ This page is a deeper code walkthrough for maintainers. The top-level README sta
 ```text
 pick-for-us/
 ├── index.html          # Entry point, SEO/social tags, and the root React mount
-├── vite.config.js      # Vite config with the React JSX compiler
-├── package.json        # Frontend dependencies: React, Firebase, Vite
+├── vite.config.ts      # Vite config with the React JSX compiler and test setup
+├── tsconfig.json       # TypeScript compiler options (strict mode)
+├── vite-env.d.ts       # Vite client type declarations
+├── package.json        # Frontend dependencies: React, Firebase, Vite, TypeScript
 ├── public/
 │   ├── og-image.png    # Social preview image for shared links
 │   └── og-image.svg    # Source SVG for the social preview image
 ├── src/
-│   ├── main.jsx        # Mounts the React app into index.html's #root div
-│   ├── App.jsx         # Main application logic and UI
-│   └── App.css         # Styles built on a CSS design token system
+│   ├── main.tsx        # Mounts the React app into index.html's #root div
+│   ├── App.tsx         # Main application state, logic, and layout
+│   ├── App.css         # Styles built on a CSS design token system
+│   ├── App.test.tsx    # Integration tests (Vitest + Testing Library)
+│   ├── components/
+│   │   ├── AppHeader.tsx         # Title bar, presence count, invite button
+│   │   ├── Icons.tsx             # SVG icon components (Chevron, Link, Lock, etc.)
+│   │   ├── NearbySearchPanel.tsx # Collapsible nearby restaurant search UI
+│   │   ├── PickControls.tsx      # Pick button and winner announcement
+│   │   ├── PrivacyFooter.tsx     # Privacy notice footer
+│   │   ├── RestaurantForm.tsx    # Restaurant name input and Add button
+│   │   ├── RestaurantList.tsx    # Restaurant list with spin/winner highlighting
+│   │   └── SuggestionsPanel.tsx  # Collapsible suggestion chips by category
+│   ├── services/
+│   │   └── locationService.ts   # Geocoding and nearby search API calls
+│   └── test/
+│       └── setup.ts             # Test setup (jest-dom matchers)
 ├── worker/
 │   ├── package.json    # Worker-only dependencies and deploy scripts
 │   ├── package-lock.json
@@ -31,26 +47,25 @@ pick-for-us/
 
 ### `index.html`
 
-A near-empty HTML file: mostly SEO/social meta tags, a `<div id="root">` that React mounts into, and a `<script>` tag pointing at `src/main.jsx`. Vite injects the compiled JS/CSS bundles here at build time.
+A near-empty HTML file: mostly SEO/social meta tags, a `<div id="root">` that React mounts into, and a `<script>` tag pointing at `src/main.tsx`. Vite injects the compiled JS/CSS bundles here at build time.
 
-### `vite.config.js`
+### `vite.config.ts`
 
-Small Vite config that registers the `@vitejs/plugin-react` plugin, which tells Vite how to transform JSX into browser-ready JavaScript.
+Vite config that registers `@vitejs/plugin-react` for JSX transformation. Also configures Vitest with jsdom, setup files, and coverage settings.
 
-### `src/main.jsx`
+### `src/main.tsx`
 
 The bootstrap file. Calls `createRoot().render(<App />)` to hand control to React. This rarely needs to change.
 
-## `src/App.jsx`
+## `src/App.tsx`
 
-Most of the app lives here. It has three broad responsibilities.
+The top-level component that owns application state and wires child components together. It has three broad responsibilities.
 
 ### 1. Firebase setup
 
 - Initializes the Firebase app with the project config.
 - Gets the Realtime Database instance.
 - Computes the room ID from the URL, or generates a 9-character ID and writes it to the URL.
-- Defines `SUGGESTIONS`, the pre-loaded restaurant options grouped by category.
 
 ### 2. State and data
 
@@ -58,23 +73,53 @@ Most of the app lives here. It has three broad responsibilities.
 - `useEffect` sets up Firebase `onValue` listeners for restaurants, winner, connection state, and room presence.
 - Presence uses Firebase `onDisconnect`, so the UI can show when multiple people are in the room and remove presence entries when a browser leaves.
 - `addRestaurant`, `removeRestaurant`, and `pickRandom` write to Firebase. Firebase then propagates those changes to every connected client.
+- `addRestaurant` guards against adds while the spinner is active.
 - The winner is chosen immediately when `pickRandom` runs. The spin animation is visual only.
 - The winner is also written directly to local state, not only Firebase, so the UI still updates if the same winner is picked twice in a row and Firebase does not emit a changed value.
-- Nearby search uses `VITE_WORKER_URL` to call the Cloudflare Worker for geocoding and nearby restaurant search.
+- Nearby search delegates to `locationService.ts` for geocoding and nearby restaurant search, then manages loading/error/result state locally.
+- Network errors from the location service are passed through `friendlyError()`, which replaces raw `TypeError` messages with a user-friendly fallback.
 
 ### 3. Rendered UI
 
-The JSX renders:
+App.tsx composes these child components:
 
-- Title, subtitle, presence count, and invite button.
-- Restaurant input row.
-- Restaurant list and empty state.
-- Pick button and winner result.
-- Collapsible suggestion chips.
-- Collapsible nearby restaurant search.
-- Privacy footer.
+| Component | Responsibility |
+|---|---|
+| `AppHeader` | Title, subtitle, presence count, invite/copy-link button |
+| `RestaurantForm` | Text input and Add button for entering restaurant names |
+| `RestaurantList` | Ordered list with spin highlighting, winner state, and remove buttons |
+| `PickControls` | Pick/Pick again button and winner announcement |
+| `SuggestionsPanel` | Collapsible panel of pre-loaded restaurant suggestion chips |
+| `NearbySearchPanel` | Collapsible panel for geocoded nearby restaurant search |
+| `PrivacyFooter` | Privacy notice |
 
-`Chevron` is the only small helper component; the rest stays in the main `App` function for simplicity.
+All components are presentational — they receive data and callbacks via typed props interfaces and contain no state or side effects.
+
+## `src/services/locationService.ts`
+
+Pure async functions for location-related API calls, extracted from App to keep fetch logic separate from React state:
+
+| Function | Purpose |
+|---|---|
+| `getCurrentPosition()` | Wraps the browser Geolocation API in a Promise |
+| `geocodeAddress(address)` | Calls the Worker's `/geocode` endpoint |
+| `searchNearbyPlaces(lat, lng, radius)` | Calls the Worker's `/nearby` endpoint |
+
+Also exports `LatLng` and response type interfaces used by the functions and App.
+
+## `src/components/Icons.tsx`
+
+Simple SVG icon components (`Chevron`, `LinkIcon`, `EmptyStateIcon`, `LocationIcon`, `LockIcon`) used across the UI. They take no props and render inline SVGs with `currentColor` for theming.
+
+## TypeScript
+
+The project uses TypeScript in strict mode. Key typing patterns:
+
+- **Props interfaces** — every component defines an interface for its props (e.g. `RestaurantListProps`), so the compiler catches mismatched or missing props at build time.
+- **Typed state** — `useState` calls include type parameters where inference isn't sufficient (e.g. `useState<Record<string, string>>({})`).
+- **API response types** — `GeocodeResponse`, `NearbyResponse` in locationService.ts define the expected shape of external API data.
+
+TypeScript is dev-only: Vite strips type annotations at build time, so the deployed output is plain JavaScript.
 
 ## Firebase Data Model
 
